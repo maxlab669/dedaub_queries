@@ -1,0 +1,14 @@
+-- Tornado cash recipients in the last 90 days. This relation is materialized every 4 hours.
+select tornado_cash_withdrawals.recipient, max(tornado_cash_withdrawals.block_number) as block_number
+-- Get transactions on Tornado Cash's withdraw function, since we only care about the recipient argument,
+-- all arguments but that are anonymous. The recipient argument will be decoded.
+from {{ transaction_detail(
+    inputs = 'withdraw(address,bytes,bytes32,bytes32,address recipient,address,uint256,uint256)',
+    duration = '90d'
+)}} as tornado_cash_withdrawals
+-- `to` address must be the Tornado Cash contract address
+where tornado_cash_withdrawals.to_a = '\xd90e2f925DA726b50C4Ed8D0Fb90Ad053324F31b'
+-- Group by the recipient address we decoded from the calldata above
+group by tornado_cash_withdrawals.recipient
+-- Order by block_number to show most recent
+order by block_number desc
