@@ -1,0 +1,16 @@
+-- calculates a USD valuation of token balances, for the Ethereum chain
+-- (token_price * token_value)/ 10 ^ token_decimals
+select
+    token_balance.token_address,
+    token_balance.owner_address,
+    (network_token_info.last_price * token_balance.value)
+    / 10 ^ network_token_info.decimals as value_usd
+-- start from the balances table
+from token_balance
+join network_token_info on network_token_info.token_address = token_balance.token_address
+where
+    -- filter tokens with no value
+    network_token_info.last_price > 0
+    and network_token_info.decimals > 0
+    -- filter balances with a valuation less than 1 USD
+    and (network_token_info.last_price * token_balance.value) / 10 ^ network_token_info.decimals > 1
