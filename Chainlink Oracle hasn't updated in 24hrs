@@ -1,0 +1,18 @@
+-- The following agent will fire (at most once per day per address) if the transmit(...) function is not called on the respective address
+-- To Configure alert, make sure alert is set to true in settings
+-- Suggested Unique key: address, date_error so that at most 1 notification per contract per day is received
+with receiver(address) as (
+  VALUES 
+  -- add chainlink receivers as required
+  ('\xb2f68c82479928669b0487d1daed6ef47b63411e'::ETHADDRESS),
+  ('\x0fc3657899693648bba4dbd2d8b33b82e875105d'::ETHADDRESS)
+)
+select address, DATE(now()) as date_error
+from (
+  -- return all the receivers, except the ones that had a "transmit(...)" call over the last 24 hours
+  select * from receiver
+  except
+  select distinct to_a as address
+  from {{ transaction_detail('transmit(bytes,bytes32[],bytes32[],bytes32)', duration = '24 hour' ) }} td
+  join receiver on td.to_a = receiver.address
+) _
