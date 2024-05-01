@@ -1,0 +1,28 @@
+-- Finds all deployments of contracts marked as vulnerable for
+-- an ERC20 transfer operation reachable by untrusted caller
+-- calculates their token balances uses the same logic as the
+-- "USD value of token balances" query
+select
+    token_balance.token_address,
+    token_balance.owner_address as vuln_contract,
+    (network_token_info.last_price * token_balance.value)
+    / 10 ^ network_token_info.decimals as vuln_amount
+-- find inspected 'Unrestricted transfer proxy' vulnerability reports marked as TP
+from
+    (
+        select inspected_vulns_code.md5_bytecode
+        from inspected_vulns_code
+        where
+            inspected_vulns_code.vulnerability_type = 'Unrestricted transfer proxy'
+            and inspected_vulns_code.vulnerability_state = 'TP'
+    ) as transfer_tps
+-- find all deployments of the vulnerable contracts
+join contracts on transfer_tps.md5_bytecode = contracts.md5_bytecode
+-- join on balances
+join token_balance on contracts.address = token_balance.owner_address
+join network_token_info on network_token_info.token_address = token_balance.token_address
+-- filter for chainid, usd value of balances over 100 
+where
+    network_token_info.last_price > 0
+    and network_token_info.decimals > 0
+    and (network_token_info.last_price * token_balance.value) / 10 ^ network_token_info.decimals > 100
