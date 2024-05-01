@@ -1,0 +1,10 @@
+-- Large balance change, in all tokens together, in a single transaction, for any contract. 
+-- Typically not a vulnerability, unlike the similar protocol-level query. The same amount
+-- is probably credited to some other address within the same circle of trust/protocol.
+select tx.* from (
+  select tx_hash(t.block_number, t.tx_index), t.address, sum(to_usd_value(t.value_delta, t.token_address)) as amount_drained
+  from {{ token_ledger() }} t
+  join contracts c using (address)
+  group by t.block_number, t.tx_index, t.address
+) tx 
+where amount_drained > 10000000 limit 10   -- adding a limit because it times out for 24-hr (or more) duration
