@@ -1,0 +1,15 @@
+-- Large amount, in all tokens together, drained from a protocol in a single tx. 
+-- Query applies to all protocols defined in the system. Note that the definition of a protocol 
+-- is often heuristic, so the draining may not always match expectations. E.g., taking ETH out of
+-- the WETH contract will appear as taking money out of the Maker protocol. (Filtered this out
+-- explicitly.) Still, the results of 
+-- this query should be inspected, as they likely represent large fund movements outside a certain 
+-- circle of trust. Currently setting the query to run as an alert, every few mins, and over the last
+-- hour's worth of transactions.
+select tx.*, p.protocol_name from (
+  select tx_hash(t.block_number, t.tx_index), sum(to_usd_value(t.value_delta, t.token_address)) as amount_drained, protocol_id
+  from {{ token_ledger() }} t
+  join protocol_contract pc using (address)
+  group by t.block_number, t.tx_index, pc.protocol_id
+) tx join protocol p using (protocol_id)
+where amount_drained > 5000000 and protocol_name != 'Maker' and protocol_name != 'UniswapV3' and protocol_name != 'CompoundV2'
