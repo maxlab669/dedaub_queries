@@ -1,0 +1,16 @@
+with
+-- Convenience subquery to get a relation with AaveV2 contracts
+    my_protocol_contracts as (
+        select address
+        -- Get contracts that belong to the AaveV2 protocol
+        from {{ contracts(protocols=["AaveV2"]) }} as protocol_contracts
+    )
+select *
+-- Get transactions in the last 30 days
+from {{ transaction_detail(duration="3d") }} as td
+-- Join with our `my_protocol_contracts` to get incoming transactions for our contract subset
+join my_protocol_contracts on td.to_a = my_protocol_contracts.address
+-- Join with my (iliastsatiris) `tc recipients` query on the `from` address, to limit transactions
+-- to ones that originate from past Tornado Cash recipient addresses. The explicit owner parameter
+-- is required here.
+join {{ref(table='tc recipients', owner="iliastsatiris") }} as tc_rep on td.from_a = tc_rep.recipient limit 100
