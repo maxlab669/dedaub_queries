@@ -1,0 +1,4 @@
+select distinct from_a 
+from {{ transaction_detail(inputs="swapExactTokensForTokens(uint amountIn, uint amountOutMin, address[], address to, uint deadline)") }} td
+join contracts c on td.from_a = c.address
+where "amountOutMin" = 0
