@@ -1,0 +1,10 @@
+-- The following agent will fire if a supported Watchdog protocol is drained (NET of any funds flowing in) by at least $1M within a single transaction
+-- To Configure alert, make sure alert is set to true in settings
+-- Suggested Unique key: tx_hash
+select tx.*, p.protocol_name from (
+  select tx_hash(t.block_number, t.tx_index), sum(to_usd_value(t.value_delta, t.token_address)) as amount_drained, protocol_id
+  from {{ token_ledger() }} t
+  join protocol_contract pc using (address)
+  group by t.block_number, t.tx_index, pc.protocol_id
+) tx join protocol p using (protocol_id)
+where amount_drained > 10000000
