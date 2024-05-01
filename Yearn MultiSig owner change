@@ -1,0 +1,8 @@
+-- This agent fires whenever a Yearn multisig owner is changed
+-- To Configure alert, make sure alert is set to true in settings
+-- Suggested Unique key: tx_hash
+select owner, tx_hash(block_number, tx_index), 'added' as action
+from {{logs('0xd9Db270c1B5E3Bd161E8c8503c55cEABeE709552.AddedOwner(address owner)')}} _
+union all
+select owner, tx_hash(block_number, tx_index), 'removed' as action
+from {{logs('0xd9Db270c1B5E3Bd161E8c8503c55cEABeE709552.RemovedOwner(address owner)')}} _
