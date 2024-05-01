@@ -1,0 +1,5 @@
+-- UniversalRouter reentrancies
+select tx_hash(call.block_number, call.tx_index)
+from {{ transaction_detail() }} as call
+join {{ transaction_detail('0x3fc91a3afd70395cd496c647d5a6cc9d4b2b7fad.execute(bytes commands, bytes[])') }} as reentrant_call on {{ is_ancestor("call", "reentrant_call") }}
+where call.to_a = reentrant_call.to_a
