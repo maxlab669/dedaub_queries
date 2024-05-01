@@ -1,0 +1,8 @@
+select tx_hash(td.block_number,td.tx_index),tl.counterparty_address,tl.value_delta
+from {{ transaction_detail() }} td
+join {{ token_ledger() }} tl using (block_number, tx_index)
+-- 0xsifu's address
+where (  tl.address = '\x31d3243CfB54B34Fc9C73e1CB1137124bD6B13E1' )
+-- call to vulnerable contract
+and td.to_a = '\x044b75f554b886a065b9567891e45c79542d7357'
+group by (td.block_number, td.tx_index),tl.counterparty_address,tl.value_delta
