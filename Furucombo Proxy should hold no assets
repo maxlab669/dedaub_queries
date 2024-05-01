@@ -1,0 +1,10 @@
+-- The following agent will fire (at most once per day per address) if the furucombo proxy retains tokens (it should not)
+-- To Configure alert, make sure alert is set to true in settings
+-- Suggested Unique key: proxy, date_error so that at most 1 notification per contract per day is received
+select
+    DATE(now()) as date_error,
+    owner_address as proxy,
+    to_usd_value(value, token_address) as usd_remain
+from token_balance
+where owner_address = '\x9901bAC880cAecAd999e292811DB9C1Db3e86F8a'
+and to_usd_value(value, token_address) > 1
