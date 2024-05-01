@@ -1,0 +1,12 @@
+-- The following agent will fire (at most once per day per address) if the specified address dips below a certain balance
+-- To Configure alert, make sure alert is set to true in settings
+-- Suggested Unique key: address, date_error so that at most 1 notification per address per day is received
+select date(now()) as date_error, vitalik_holdings.* from (
+  select
+      owner_address as address,
+      sum(to_usd_value(value, token_address)) as usd_remain
+  from token_balance
+  where owner_address = '\xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
+  group by owner_address
+) vitalik_holdings
+where usd_remain < 1000000
