@@ -1,0 +1,34 @@
+-- Finds all deployments of contracts marked as vulnerable for
+-- an ERC20 transferFrom operation reachable by untrusted caller
+-- calculates vulnerable funds based on token allowances on the vulnerable contracts
+-- and the balances of the allowers
+-- uses the same logic as the "USD value of token balances" query
+select
+    token_balance.token_address,
+    token_allowance.spender_address,
+    token_balance.owner_address,
+    (ti.last_price * token_balance.value) / 10 ^ ti.decimals as vuln_balance,
+    (ti.last_price * token_allowance.value) / 10 ^ ti.decimals as vuln_allowance
+-- find 'Unrestricted transferFrom Proxy' vulnerability reports marked as TP
+from
+    (
+        select inspected_vulns_code.md5_bytecode
+        from inspected_vulns_code
+        where
+            inspected_vulns_code.vulnerability_type = 'Unrestricted transferFrom Proxy'
+            and inspected_vulns_code.vulnerability_state = 'TP'
+    ) as transferfrom_tps
+-- find their deployments
+join contracts on transferfrom_tps.md5_bytecode = contracts.md5_bytecode
+-- find allowances on instances of the vulnerable contracts
+join token_allowance on contracts.address = token_allowance.spender_address
+-- and balances on the allowers
+join token_balance using (owner_address, token_address)
+join network_token_info ti using (token_address)
+-- filter for chainid, usd value of balances over 100 
+where
+    ti.last_price > 0
+    and ti.decimals > 0
+    and ti.token_address != '\xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+    and (ti.last_price * token_balance.value) / 10 ^ ti.decimals > 100
+    and (ti.last_price * token_allowance.value) / 10 ^ ti.decimals > 100
